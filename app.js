@@ -9,7 +9,7 @@ app.get("/", (req, res) => {
   res.json({
     status: 200,
     message:
-      "This API works!, please report if has any problems darlin' - Ryuko",
+      "This API works!, please report if has any problems darlin❤️' - Ryuko",
   });
 });
 
