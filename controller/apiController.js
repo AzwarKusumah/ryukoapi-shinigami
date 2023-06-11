@@ -148,4 +148,86 @@ const projectList = async (req, res) => {
   }
 };
 
-module.exports = { homeComic, projectList };
+const searchProject = async (req, res) => {
+  const query = req.params.query;
+  let page = req.params.page || 1;
+  const url =
+    page < 2
+      ? `?s=${query}&post_type=wp-manga`
+      : `/page/${page}/?s=${query}&post_type=wp-manga`;
+
+  let searchResult = [];
+  let pagination = [];
+
+  try {
+    await axios({
+      url: `${baseUrl}${url}`,
+      method: "get",
+      headers: {
+        "User-Agent": "Chrome",
+      },
+    }).then((result) => {
+      const $ = cheerio.load(result.data);
+
+      $(".c-tabs-item__content").each((i, el) => {
+        title = $(el).find(".h4 > a").text();
+        thumb = $(el).find("img").attr("data-src");
+        genres = $(el)
+          .find(".mg_genres > .summary-content > a")
+          .map((i, el) => $(el).text())
+          .get();
+        status_komik = $(el).find(".mg_status > .summary-content").text();
+        release_year = $(el).find(".mg_release > .summary-content").text();
+        ratings = $(el).find(".post-total-rating > span").text();
+        source = $(el).find(".h4 > a").attr("href");
+        endpoint = $(el)
+          .find(".h4 > a")
+          .attr("href")
+          .replace(`https://shinigami.id`, "")
+          .replace("/", "");
+
+        let komik = {
+          title: title,
+          status: status_komik,
+          release_year: release_year,
+          ratings: ratings,
+          thumbs: thumb,
+          genres: genres,
+          link: { url: source, endpoint: endpoint },
+        };
+        searchResult.push(komik);
+      });
+
+      $(
+        ".wp-pagenavi .page, .wp-pagenavi .current, .previouspostslink, .nextpostslink"
+      ).each((i, el) => {
+        page_number = $(el).text();
+        link = $(el).attr("href");
+        let endpoint = "";
+
+        if (link) {
+          endpoint = link.replace(`https://shinigami.id`, "").replace("/", "");
+        }
+
+        pagination.push({
+          name: page_number,
+          url: link,
+          endpoint: endpoint,
+        });
+      });
+
+      return res.json({
+        message: "Data Success",
+        komik_list: searchResult,
+        pagination: pagination,
+      });
+    });
+  } catch (error) {
+    res.json({
+      status: false,
+      message: error,
+    });
+  }
+};
+
+module.exports = { homeComic, projectList, searchProject };

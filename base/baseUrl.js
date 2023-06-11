@@ -1,2 +1,2 @@
-const baseUrl = "https://api.allorigins.win/raw?url=https://shinigami.id/";
+const baseUrl = "https://shinigami.id/";
 module.exports = baseUrl;
