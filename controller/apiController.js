@@ -74,10 +74,9 @@ const homeComic = async (req, res) => {
 
 const projectList = async (req, res) => {
   const page = req.params.page;
-  const url =  page < 2 ? "/project" : `/project/page/${page}`;
+  const url = page < 2 ? "/project" : `/project/page/${page}`;
 
-
-  try{
+  try {
     axios({
       url: `${baseUrl}${url}`,
       method: "get",
@@ -87,41 +86,61 @@ const projectList = async (req, res) => {
     }).then((result) => {
       const $ = cheerio.load(result.data);
 
-      let list_komik = []
+      let list_komik = [];
+      let pagination = [];
 
       $(".page-listing-item .page-item-detail").each((i, el) => {
         title = $(el).find(".h5 > a ").text();
         tipe = $(el).find("a > span").text();
-        thumb = $(el).find("a > img").attr("data-src")
-        source = $(el).find("a").attr("href")
-        endpoint = $(el).find("a").attr("href").replace(`https://shinigami.id`, "")
-        .replace("/", "");
+        thumb = $(el).find("a > img").attr("data-src");
+        source = $(el).find("a").attr("href");
+        endpoint = $(el)
+          .find("a")
+          .attr("href")
+          .replace(`https://shinigami.id`, "")
+          .replace("/", "");
+        latest_chapter = $(el)
+          .find(".chapter-item > .chapter > a")
+          .first()
+          .text()
+          .trim();
+        link_chapter = $(el).find(".chapter-item > .chapter > a").attr("href");
 
         let komik = {
           title: title,
           tipe: tipe,
           thumb: thumb,
-          link: { url: source,
-          endpoint: endpoint  }
+          link: { url: source, endpoint: endpoint },
+          latest_link: { name: latest_chapter, link_chapter: link_chapter },
         };
-        list_komik.push(komik)
-        
+        list_komik.push(komik);
       });
-      
-      let jsonResult = {
-        list_komik: list_komik
-      };
 
-      $(".wp-pagenavi").each((i, el) => {
-        name = $(el).attr("class");
+      $(
+        ".wp-pagenavi .page, .wp-pagenavi .current, .previouspostslink, .nextpostslink"
+      ).each((i, el) => {
+        page_number = $(el).text();
+        link = $(el).attr("href");
+        let endpoint = "";
+
+        if (link) {
+          endpoint = link.replace(`https://shinigami.id`, "").replace("/", "");
+        }
+
+        pagination.push({
+          name: page_number,
+          url: link,
+          endpoint: endpoint,
+        });
       });
 
       return res.json({
-        message: "Data Success", 
-        anime_list:jsonResult});
+        message: "Data Success",
+        komik_list: list_komik,
+        pagination: pagination,
+      });
     });
-
-  } catch(error){
+  } catch (error) {
     res.json({
       status: false,
       message: error,
@@ -129,4 +148,4 @@ const projectList = async (req, res) => {
   }
 };
 
-module.exports = { homeComic,projectList };
+module.exports = { homeComic, projectList };
