@@ -230,4 +230,148 @@ const searchProject = async (req, res) => {
   }
 };
 
-module.exports = { homeComic, projectList, searchProject };
+const comicDetails = async (req, res) => {
+  const endpoint = req.params.endpoint;
+  const url = `series/${endpoint}`;
+
+  let comic_details = [];
+  let chapters = [];
+  try {
+    await axios({
+      url: `${baseUrl}${url}`,
+      method: "get",
+      headers: {
+        "User-Agent": "Chrome",
+      },
+    }).then((result) => {
+      const $ = cheerio.load(result.data);
+
+      $(".profile-manga").each((i, el) => {
+        title = $(el).find(".post-title > h1").text().trim();
+        alternative = $(el).find(".summary-content").eq(2).text().trim();
+        rank = $(el).find(".summary-content").eq(1).text().trim();
+        author = $(el).find(".author-content").text().trim();
+        artist = $(el).find(".artist-content").text().trim();
+        genre = $(el)
+          .find(".genres-content > a")
+          .map((i, el) => $(el).text())
+          .get();
+        release = $(el).find(".summary-content").eq(8).text().trim();
+        status_komik = $(el).find(".summary-content").eq(9).text().trim();
+        sinopsis = $(el)
+          .find(".description-summary > .summary__content > p")
+          .text();
+        thumb = $(el).find("img").attr("data-src");
+        averageRating = $(el).find("#averagerate").text();
+        totalRating = $(el).find("#countrate").text();
+        ratings = `Average ${averageRating} / 5 out of ${totalRating}`;
+
+        let komik_detail = {
+          title: title,
+          alternative: alternative,
+          rank: rank,
+          rating: ratings,
+          author: author,
+          artist: artist,
+          genres: genre,
+          release: release,
+          status: status_komik,
+          thumbs: thumb,
+          sinopsis: sinopsis,
+        };
+        comic_details.push(komik_detail);
+      });
+
+      $(".wp-manga-chapter").each((i, el) => {
+        name_chapter = $(el).find(".chapter-manhwa-title").text();
+        source = $(el).find(".chapter-link > a").attr("href");
+        endpoint_url = $(el)
+          .find(".chapter-link > a")
+          .attr("href")
+          .replace(`https://shinigami.id`, "")
+          .replace("/", "");
+
+        let komik_chapter = {
+          name: name_chapter,
+          link: { url: source, endpoint: endpoint_url },
+        };
+
+        chapters.push(komik_chapter);
+      });
+    });
+
+    return res.json({
+      message: "Data Success",
+      comic_details: comic_details,
+      chapters: chapters,
+    });
+  } catch (error) {
+    res.json({
+      status: false,
+      message: error,
+    });
+  }
+};
+
+const comicChapters = async (req, res) => {
+  const endpoint = req.params.endpoint;
+  const endpoints = req.params.endpoints;
+  const url = `series/${endpoint}/${endpoints}`;
+
+  let chapter_title, images, pagenations;
+  try {
+    await axios({
+      url: `${baseUrl}${url}`,
+      method: "get",
+      headers: {
+        "User-Agent": "Chrome",
+      },
+    }).then((result) => {
+      const $ = cheerio.load(result.data);
+      const title = $(".row").find("#chapter-heading").text();
+      chapter_title = title;
+
+      $(".read-container").each((i, el) => {
+        image = $(el)
+          .find(".page-break > img")
+          .map((i, el) => $(el).attr("data-src").trim())
+          .get();
+      });
+      images = image;
+
+      const prev = $(".wp-manga-nav")
+        .find(".nav-previous > a")
+        .attr("href")
+        .replace(`https://shinigami.id`, "")
+        .replace("/", "");
+      const next = $(".wp-manga-nav")
+        .find(".nav-next > a")
+        .attr("href")
+        .replace(`https://shinigami.id`, "")
+        .replace("/", "");
+      let pagination = {
+        prev: prev,
+        next: next,
+      };
+      pagenations = pagination;
+    });
+    return res.json({
+      title: chapter_title,
+      images: images,
+      pagination: pagenations,
+    });
+  } catch (error) {
+    res.json({
+      status: false,
+      message: error,
+    });
+  }
+};
+
+module.exports = {
+  homeComic,
+  projectList,
+  searchProject,
+  comicDetails,
+  comicChapters,
+};
