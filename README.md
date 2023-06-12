@@ -45,3 +45,6 @@ Comic chapter
 /api/series/:endpoint/:endpoints
 ```
 Ex: http://localhost:3001/api/series/overgeared/chapter-183
+
+## Note:
+if has any problem with the link u can add https://api.allorigins.win/raw?url=(https://example.org/)
